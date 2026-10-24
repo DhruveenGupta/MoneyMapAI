@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\MoneyMap.Application\MoneyMap.Application.csproj" />
+    <ProjectReference Include="..\MoneyMap.Domain\MoneyMap.Domain.csproj" />
+    <ProjectReference Include="..\MoneyMap.Persistence\MoneyMap.Persistence.csproj" />
+    <ProjectReference Include="..\MoneyMap.Ai\MoneyMap.Ai.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MoneyMap.Ai/MoneyMap.Ai.csproj" />
+    <Project Path="src/MoneyMap.Application/MoneyMap.Application.csproj" />
+    <Project Path="src/MoneyMap.Domain/MoneyMap.Domain.csproj" />
+    <Project Path="src/MoneyMap.Persistence/MoneyMap.Persistence.csproj" />
+    <Project Path="src/MoneyMap.Web/MoneyMap.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MoneyMap.Ai.Tests/MoneyMap.Ai.Tests.csproj" />
+    <Project Path="tests/MoneyMap.Application.Tests/MoneyMap.Application.Tests.csproj" />
+    <Project Path="tests/MoneyMap.Domain.Tests/MoneyMap.Domain.Tests.csproj" />
+    <Project Path="tests/MoneyMap.Persistence.Tests/MoneyMap.Persistence.Tests.csproj" />
+  </Folder>
+</Solution>
