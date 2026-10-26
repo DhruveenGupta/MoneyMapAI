@@ -1,10 +1,7 @@
 namespace MoneyMap.Domain;
 
-/// <summary>
-/// A single source of income (a job, allowance, gig, benefit, etc.). Gross amount is optional:
-/// many users only know their take-home (net) pay, and MoneyMap never requires information the
-/// user may not have.
-/// </summary>
+// A job, allowance, gig, benefit, whatever. Gross amount is optional since plenty of people
+// only know their take-home pay.
 public sealed record IncomeSource
 {
     public required Guid Id { get; init; }
@@ -19,7 +16,7 @@ public sealed record IncomeSource
 
     public bool IsActive { get; init; } = true;
 
-    /// <summary>Net income normalized to a monthly amount, or zero if the source is inactive.</summary>
+    // Normalized to a monthly amount; zero if this source is turned off.
     public Money MonthlyNet => IsActive ? IncomeFrequencyConverter.ToMonthly(NetAmount, Frequency) : Money.Zero(NetAmount.Currency);
 
     public static IncomeSource Create(string name, decimal netAmount, string currency, IncomeFrequency frequency, decimal? grossAmount = null, bool isActive = true, Guid? id = null)

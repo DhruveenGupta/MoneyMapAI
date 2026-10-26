@@ -1,0 +1,23 @@
+<div class="mm-card">
+    <div class="mm-stat-label">@Label</div>
+    <div class="mm-stat-value" style="color:@ValueColor">@Value</div>
+    @if (!string.IsNullOrWhiteSpace(SubText))
+    {
+        <div class="mm-text-sm" style="color:var(--mm-text-muted); margin-top:4px;">@SubText</div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Value { get; set; } = string.Empty;
+    [Parameter] public string? SubText { get; set; }
+    [Parameter] public StatTone Tone { get; set; } = StatTone.Neutral;
+
+    private string ValueColor => Tone switch
+    {
+        StatTone.Positive => "var(--mm-success-700)",
+        StatTone.Warning => "var(--mm-warning-700)",
+        StatTone.Critical => "var(--mm-danger-700)",
+        _ => "var(--mm-text)",
+    };
+}

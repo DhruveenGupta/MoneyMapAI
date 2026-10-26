@@ -480,3 +480,6 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# MoneyMap local data - the user's actual budget file should never be committed
+src/MoneyMap.Web/App_Data/

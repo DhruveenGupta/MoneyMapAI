@@ -1,0 +1,71 @@
+@* Horizontal bar chart, planned vs actual. The table below it carries the same data for
+   screen readers, since bar length alone doesn't. *@
+
+<div role="img" aria-label="@AriaSummary">
+    <div style="display:flex; flex-direction:column; gap:10px;" aria-hidden="true">
+        @foreach (var item in Data)
+        {
+            var pct = MaxValue > 0 ? (double)(item.Value / MaxValue) * 100 : 0;
+            var secondaryPct = item.SecondaryValue.HasValue && MaxValue > 0 ? (double)(item.SecondaryValue.Value / MaxValue) * 100 : (double?)null;
+            <div>
+                <div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom:4px;">
+                    <span style="font-weight:600;">@item.Label</span>
+                    <span>@FormatMoney(item.Value, item.Currency)@(item.SecondaryValue.HasValue ? $" planned · {FormatMoney(item.SecondaryValue.Value, item.Currency)} actual" : "")</span>
+                </div>
+                <div style="position:relative; height:16px; background:var(--mm-neutral-100); border-radius:999px; overflow:hidden;">
+                    <div style="height:100%; width:@(pct.ToString(System.Globalization.CultureInfo.InvariantCulture))%; background:var(--mm-primary-500); border-radius:999px;"></div>
+                    @if (secondaryPct.HasValue)
+                    {
+                        <div style="position:absolute; top:0; bottom:0; left:0; width:@(secondaryPct.Value.ToString(System.Globalization.CultureInfo.InvariantCulture))%; border-right:3px solid var(--mm-text); opacity:0.55;"></div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<details class="mm-text-sm" style="margin-top:10px;">
+    <summary style="cursor:pointer; font-weight:600;">View as data table</summary>
+    <div class="mm-table-scroll">
+        <table class="mm-table">
+            <thead>
+                <tr>
+                    <th scope="col">@PrimaryColumnHeader</th>
+                    <th scope="col">@ValueColumnHeader</th>
+                    @if (Data.Any(d => d.SecondaryValue.HasValue))
+                    {
+                        <th scope="col">@SecondaryColumnHeader</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Data)
+                {
+                    <tr>
+                        <td>@item.Label</td>
+                        <td>@FormatMoney(item.Value, item.Currency)</td>
+                        @if (Data.Any(d => d.SecondaryValue.HasValue))
+                        {
+                            <td>@(item.SecondaryValue.HasValue ? FormatMoney(item.SecondaryValue.Value, item.Currency) : "—")</td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</details>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<ChartDatum> Data { get; set; } = Array.Empty<ChartDatum>();
+    [Parameter] public string PrimaryColumnHeader { get; set; } = "Category";
+    [Parameter] public string ValueColumnHeader { get; set; } = "Planned";
+    [Parameter] public string SecondaryColumnHeader { get; set; } = "Actual";
+
+    private decimal MaxValue => Data.Count == 0 ? 0 : Data.Max(d => Math.Max(d.Value, d.SecondaryValue ?? 0m));
+
+    private string AriaSummary => Data.Count == 0
+        ? "No data to chart yet."
+        : "Bar chart of " + PrimaryColumnHeader.ToLowerInvariant() + " amounts. Full values are listed in the data table below.";
+
+    private static string FormatMoney(decimal amount, string currency) => new MoneyMap.Domain.Money(amount, currency).ToString();
+}

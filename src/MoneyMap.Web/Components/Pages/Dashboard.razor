@@ -1,0 +1,111 @@
+@page "/dashboard"
+@rendermode InteractiveServer
+@inject BudgetProfileService ProfileService
+
+<PageTitle>MoneyMap AI - Dashboard</PageTitle>
+
+<h1>Dashboard</h1>
+
+@if (_summary is null)
+{
+    <p>Loading…</p>
+}
+else if (!_hasAnyData)
+{
+    <EmptyState Icon="📊" Title="Nothing to show yet" Message="Add your income and expenses to see your dashboard come to life.">
+        <a class="mm-btn mm-btn-primary" href="/onboarding">Go to onboarding</a>
+    </EmptyState>
+}
+else
+{
+    @if (_profile!.IsSampleData)
+    {
+        <div class="mm-banner mm-banner-info" role="status">
+            <span aria-hidden="true">ℹ</span>
+            <div>This dashboard is showing <strong>sample data</strong>, not your own entries. Edit anything on the <a href="/onboarding">Onboarding</a> page to replace it.</div>
+        </div>
+    }
+
+    <div class="mm-grid mm-grid-4">
+        <StatCard Label="Monthly take-home income" Value="@_summary.TotalMonthlyNetIncome.ToString()" />
+        <StatCard Label="Planned expenses" Value="@_summary.TotalPlannedExpenses.ToString()"
+                  SubText="@(_summary.BudgetUtilizationPercent is { } p ? $"{p:0.#}% of income" : null)" />
+        <StatCard Label="Remaining funds (planned)" Value="@_summary.PlannedRemainingFunds.ToString()"
+                  Tone="@(_summary.PlannedExceedsIncome ? StatTone.Critical : StatTone.Positive)" />
+        @if (_summary.HasAnyActuals)
+        {
+            <StatCard Label="Remaining funds (actual-aware)" Value="@_summary.BlendedRemainingFunds.ToString()"
+                      Tone="@(_summary.BlendedRemainingFunds.IsNegative ? StatTone.Critical : StatTone.Neutral)"
+                      SubText="Uses recorded actuals where available" />
+        }
+        else
+        {
+            <StatCard Label="Actual spending recorded" Value="None yet" SubText="Record actuals in Budget Builder" />
+        }
+    </div>
+
+    @if (_insights.Count > 0)
+    {
+        <section style="margin-top:24px;" aria-labelledby="insights-heading">
+            <h2 id="insights-heading">Insights</h2>
+            @foreach (var insight in _insights)
+            {
+                <InsightBanner Insight="insight" />
+            }
+        </section>
+    }
+
+    @if (_summary.CategoryBreakdown.Count > 0)
+    {
+        <section class="mm-card" style="margin-top:24px;" aria-labelledby="breakdown-heading">
+            <h2 id="breakdown-heading">Expense breakdown</h2>
+            <DonutChart Currency="@_summary.Currency"
+                        Data="@_summary.CategoryBreakdown.Select(c => new ChartDatum(ExpenseCategoryInfo.DisplayName(c.Category), c.PlannedTotal.Amount, _summary.Currency)).ToList()" />
+        </section>
+
+        <section class="mm-card" style="margin-top:24px;" aria-labelledby="planned-actual-heading">
+            <h2 id="planned-actual-heading">Planned vs. actual by category</h2>
+            <BarChart PrimaryColumnHeader="Category" ValueColumnHeader="Planned" SecondaryColumnHeader="Actual"
+                      Data="@_summary.CategoryBreakdown.Select(c => new ChartDatum(ExpenseCategoryInfo.DisplayName(c.Category), c.PlannedTotal.Amount, _summary.Currency, c.ActualTotal?.Amount)).ToList()" />
+        </section>
+    }
+
+    @if (_goals.Count > 0)
+    {
+        <section class="mm-card" style="margin-top:24px;" aria-labelledby="goals-heading">
+            <div class="mm-section-title">
+                <h2 id="goals-heading">Savings goals</h2>
+                <a href="/goals" class="mm-btn mm-btn-sm mm-btn-secondary">Manage goals</a>
+            </div>
+            <div class="mm-grid mm-grid-2">
+                @foreach (var goal in _goals)
+                {
+                    <div>
+                        <ProgressBar Label="@goal.Name" PercentValue="@GoalPercent(goal)" />
+                    </div>
+                }
+            </div>
+        </section>
+    }
+}
+
+@code {
+    private BudgetProfile? _profile;
+    private BudgetSummary? _summary;
+    private IReadOnlyList<Insight> _insights = Array.Empty<Insight>();
+    private IReadOnlyList<SavingsGoal> _goals = Array.Empty<SavingsGoal>();
+
+    private bool _hasAnyData => _profile is not null && (_profile.Budget.IncomeSources.Count > 0 || _profile.Budget.Expenses.Count > 0);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _profile = await ProfileService.GetProfileAsync();
+        _summary = await ProfileService.GetSummaryAsync();
+        _insights = await ProfileService.GetInsightsAsync();
+        _goals = _profile.SavingsGoals;
+    }
+
+    private static double GoalPercent(SavingsGoal goal) => goal.TargetAmount.IsPositive
+        ? Math.Clamp((double)(goal.CurrentAmount.Amount / goal.TargetAmount.Amount) * 100, 0, 100)
+        : 0;
+}

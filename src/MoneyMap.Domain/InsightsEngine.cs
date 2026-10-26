@@ -2,11 +2,8 @@ using System.Globalization;
 
 namespace MoneyMap.Domain;
 
-/// <summary>
-/// Generates <see cref="Insight"/> records from reproducible calculations only. Given the same
-/// budget, goals, and date, this always produces the same output — nothing here calls an LLM or
-/// introduces randomness.
-/// </summary>
+// Builds insights from plain calculations - same inputs always give the same output, no LLM
+// or randomness involved.
 public static class InsightsEngine
 {
     public static IReadOnlyList<Insight> Generate(Budget budget, BudgetSummary summary, IReadOnlyList<SavingsGoal> goals, DateOnly asOf)

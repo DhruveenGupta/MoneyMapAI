@@ -3,13 +3,9 @@ using MoneyMap.Domain;
 
 namespace MoneyMap.Application;
 
-/// <summary>
-/// The single application-layer entry point for reading and mutating the user's financial data.
-/// Every page, chart, and AI context in the Web project goes through this service, so they can
-/// never disagree about what the current budget is. All validation is delegated to the Domain
-/// layer's factory methods, which throw <see cref="ArgumentException"/>-family exceptions on
-/// invalid input; callers (the UI) are expected to catch those and show inline validation errors.
-/// </summary>
+// Every page and chart reads/writes the budget through here instead of hitting the repository
+// directly, so they all stay in sync. Validation is left to the Domain factory methods - they
+// throw ArgumentException on bad input and the UI catches it to show inline errors.
 public sealed class BudgetProfileService
 {
     private readonly IBudgetProfileRepository _repository;
@@ -141,11 +137,7 @@ public sealed class BudgetProfileService
             return profile with { SavingsGoals = replaced };
         }, cancellationToken);
 
-    /// <summary>
-    /// Applies an AI-proposed category change to the real budget. Must only be called after the
-    /// user has explicitly confirmed the change in the UI — this method performs no confirmation
-    /// of its own.
-    /// </summary>
+    // Call this only after the user clicks confirm in the UI - it doesn't ask again.
     public Task<BudgetProfile> ApplyProposedChangeAsync(ProposedBudgetChange change, CancellationToken cancellationToken = default)
         => MutateAsync(profile =>
         {

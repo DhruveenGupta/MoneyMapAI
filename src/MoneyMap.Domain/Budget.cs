@@ -1,10 +1,6 @@
 namespace MoneyMap.Domain;
 
-/// <summary>
-/// The user's budget: income sources, planned/actual expenses, and current savings, all in a
-/// single currency. This is the single source of truth that every chart, summary figure, and
-/// AI answer must be derived from.
-/// </summary>
+// Income, expenses, and savings for one user, all in one currency.
 public sealed record Budget
 {
     public required string Currency { get; init; }

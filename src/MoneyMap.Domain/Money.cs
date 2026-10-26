@@ -1,9 +1,6 @@
 namespace MoneyMap.Domain;
 
-/// <summary>
-/// Thrown when an operation would combine two <see cref="Money"/> values that use different
-/// currencies. MoneyMap never silently mixes currencies.
-/// </summary>
+// Thrown instead of silently mixing currencies together.
 public sealed class CurrencyMismatchException : Exception
 {
     public string LeftCurrency { get; }
@@ -17,12 +14,8 @@ public sealed class CurrencyMismatchException : Exception
     }
 }
 
-/// <summary>
-/// A decimal-safe monetary amount tied to an explicit currency code. All arithmetic rounds to
-/// two decimal places using <see cref="MidpointRounding.AwayFromZero"/> (standard "round half up"
-/// cash rounding) so totals reconcile the way a user expects on a receipt. Money is never
-/// represented as a floating point number anywhere in the domain.
-/// </summary>
+// Decimal amount + currency code. Rounds to 2 decimal places, round-half-up, like a receipt.
+// No floats anywhere.
 public readonly record struct Money : IComparable<Money>
 {
     public const int MinorUnitDigits = 2;
@@ -102,7 +95,7 @@ public readonly record struct Money : IComparable<Money>
         return left.Amount <= right.Amount;
     }
 
-    /// <summary>Returns zero when the subtraction would be negative, clamping at the currency's zero value.</summary>
+    // Floors at zero instead of going negative.
     public Money ClampedDifference(Money other)
     {
         EnsureSameCurrency(this, other);
@@ -110,7 +103,7 @@ public readonly record struct Money : IComparable<Money>
         return result < 0m ? Zero(Currency) : new Money(result, Currency);
     }
 
-    /// <summary>Ratio of this amount to <paramref name="whole"/>, expressed as a percentage (0-100+), or null if whole is zero.</summary>
+    // Null if whole is zero, otherwise a percentage (can go over 100).
     public decimal? PercentOf(Money whole)
     {
         EnsureSameCurrency(this, whole);

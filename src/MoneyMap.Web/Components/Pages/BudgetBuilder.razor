@@ -1,0 +1,187 @@
+@page "/budget"
+@rendermode InteractiveServer
+@inject BudgetProfileService ProfileService
+
+<PageTitle>MoneyMap AI - Budget Builder</PageTitle>
+
+<h1>Budget Builder</h1>
+<p style="max-width:62ch;">Try changing a planned amount below to see its effect immediately. Nothing is saved until you click <strong>Apply to my budget</strong>.</p>
+
+@if (_profile is null)
+{
+    <p>Loading…</p>
+}
+else if (_profile.Budget.Expenses.Count == 0)
+{
+    <EmptyState Icon="🧮" Title="No expenses to adjust yet" Message="Add some expenses first on the Onboarding page.">
+        <a class="mm-btn mm-btn-primary" href="/onboarding">Go to onboarding</a>
+    </EmptyState>
+}
+else
+{
+    <div class="mm-grid mm-grid-2" style="align-items:start;">
+        <section class="mm-card">
+            <h2>Planned amounts</h2>
+            @foreach (var line in _profile.Budget.Expenses)
+            {
+                var whatIf = _whatIfPlanned[line.Id];
+                var delta = whatIf - line.PlannedAmount.Amount;
+                <div class="mm-field">
+                    <label for="@($"line-{line.Id}")">@line.Name <span class="mm-text-sm" style="color:var(--mm-text-muted);">(@ExpenseCategoryInfo.DisplayName(line.Category))</span></label>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <input id="@($"line-{line.Id}")" type="range" min="0" max="@MaxSliderValue(line)" step="5"
+                               value="@whatIf" style="flex:1;"
+                               @oninput="e => OnWhatIfChanged(line.Id, e.Value)" />
+                        <input type="number" min="0" step="0.01" class="mm-input" style="width:110px;"
+                               value="@whatIf.ToString("0.00")" @oninput="e => OnWhatIfChanged(line.Id, e.Value)" />
+                    </div>
+                    @if (delta != 0)
+                    {
+                        <div class="mm-text-sm" style="color:@(delta < 0 ? "var(--mm-success-700)" : "var(--mm-warning-700)");">
+                            @(delta < 0 ? "Saves" : "Adds") @FormatMoney(Math.Abs(delta)) / month vs. current plan
+                        </div>
+                    }
+                </div>
+            }
+            <div style="display:flex; gap:8px; margin-top:12px;">
+                <button class="mm-btn mm-btn-primary" @onclick="ApplyChanges" disabled="@(!HasChanges)">Apply to my budget</button>
+                <button class="mm-btn mm-btn-ghost" @onclick="ResetWhatIf" disabled="@(!HasChanges)">Reset</button>
+            </div>
+            @if (_applied)
+            {
+                <p class="mm-text-sm" style="color:var(--mm-success-700); margin-top:8px;" role="status">Changes applied to your budget.</p>
+            }
+        </section>
+
+        <section class="mm-card">
+            <h2>Impact preview</h2>
+            <div class="mm-grid mm-grid-2">
+                <StatCard Label="Current remaining funds" Value="@_baselineSummary!.PlannedRemainingFunds.ToString()" />
+                <StatCard Label="What-if remaining funds" Value="@_whatIfSummary!.PlannedRemainingFunds.ToString()"
+                          Tone="@(_whatIfSummary.PlannedExceedsIncome ? StatTone.Critical : StatTone.Positive)" />
+            </div>
+            <hr class="mm-divider" />
+            <h3>Record actual spending</h3>
+            <p class="mm-text-sm" style="color:var(--mm-text-muted);">Separate from the what-if planner above - this updates what you've actually spent so far.</p>
+            @foreach (var line in _profile.Budget.Expenses)
+            {
+                <div class="mm-field" style="display:flex; align-items:end; gap:8px;">
+                    <div style="flex:1;">
+                        <label for="@($"actual-{line.Id}")">@line.Name actual</label>
+                        <input id="@($"actual-{line.Id}")" type="number" min="0" step="0.01" class="mm-input"
+                               @bind="_actualInputs[line.Id]" />
+                    </div>
+                    <button class="mm-btn mm-btn-secondary mm-btn-sm" @onclick="() => SaveActual(line.Id)">Save</button>
+                </div>
+            }
+        </section>
+    </div>
+}
+
+@code {
+    private BudgetProfile? _profile;
+    private BudgetSummary? _baselineSummary;
+    private BudgetSummary? _whatIfSummary;
+    private readonly Dictionary<Guid, decimal> _whatIfPlanned = new();
+    private readonly Dictionary<Guid, decimal?> _actualInputs = new();
+    private bool _applied;
+
+    private bool HasChanges => _profile is not null && _profile.Budget.Expenses.Any(l => _whatIfPlanned[l.Id] != l.PlannedAmount.Amount);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _profile = await ProfileService.GetProfileAsync();
+        _whatIfPlanned.Clear();
+        _actualInputs.Clear();
+        foreach (var line in _profile.Budget.Expenses)
+        {
+            _whatIfPlanned[line.Id] = line.PlannedAmount.Amount;
+            _actualInputs[line.Id] = line.ActualAmount?.Amount;
+        }
+
+        RecalculateSummaries();
+    }
+
+    private void RecalculateSummaries()
+    {
+        if (_profile is null)
+        {
+            return;
+        }
+
+        _baselineSummary = BudgetCalculator.Summarize(_profile.Budget);
+
+        var hypotheticalExpenses = _profile.Budget.Expenses
+            .Select(l => l.WithPlannedAmount(_whatIfPlanned[l.Id]))
+            .ToList();
+        var hypotheticalBudget = _profile.Budget with { Expenses = hypotheticalExpenses };
+        _whatIfSummary = BudgetCalculator.Summarize(hypotheticalBudget);
+    }
+
+    private void OnWhatIfChanged(Guid lineId, object? value)
+    {
+        if (decimal.TryParse(value?.ToString(), out var parsed) && parsed >= 0)
+        {
+            _whatIfPlanned[lineId] = parsed;
+            _applied = false;
+            RecalculateSummaries();
+        }
+    }
+
+    private void ResetWhatIf()
+    {
+        if (_profile is null)
+        {
+            return;
+        }
+
+        foreach (var line in _profile.Budget.Expenses)
+        {
+            _whatIfPlanned[line.Id] = line.PlannedAmount.Amount;
+        }
+
+        RecalculateSummaries();
+    }
+
+    private async Task ApplyChanges()
+    {
+        if (_profile is null)
+        {
+            return;
+        }
+
+        foreach (var line in _profile.Budget.Expenses)
+        {
+            if (_whatIfPlanned[line.Id] != line.PlannedAmount.Amount)
+            {
+                var updated = line.WithPlannedAmount(_whatIfPlanned[line.Id]);
+                await ProfileService.ReplaceExpenseLineAsync(updated);
+            }
+        }
+
+        _applied = true;
+        await LoadAsync();
+    }
+
+    private async Task SaveActual(Guid lineId)
+    {
+        if (_profile is null)
+        {
+            return;
+        }
+
+        var line = _profile.Budget.Expenses.Single(l => l.Id == lineId);
+        var updated = line.WithActualAmount(_actualInputs[lineId]);
+        await ProfileService.ReplaceExpenseLineAsync(updated);
+        await LoadAsync();
+    }
+
+    private static decimal MaxSliderValue(BudgetLine line) => Math.Max(200m, line.PlannedAmount.Amount * 3m);
+
+    private string FormatMoney(decimal amount) => new Money(amount, _profile!.Budget.Currency).ToString();
+}

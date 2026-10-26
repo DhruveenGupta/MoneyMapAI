@@ -8,11 +8,8 @@ public enum InsightSeverity
     Critical,
 }
 
-/// <summary>
-/// A single, reproducible observation derived purely from the user's own data. Insights never
-/// shame the user or draw conclusions the numbers don't support — they state a fact, the
-/// assumptions behind it, and (when relevant) what information is missing.
-/// </summary>
+// One observation derived from the user's own numbers - states a fact and its assumptions,
+// doesn't moralize about spending habits.
 public sealed record Insight
 {
     public required string Key { get; init; }

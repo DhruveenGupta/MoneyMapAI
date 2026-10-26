@@ -1,10 +1,7 @@
 namespace MoneyMap.Domain;
 
-/// <summary>
-/// A single budgeted expense. <see cref="ActualAmount"/> is intentionally nullable: "no value
-/// recorded yet" and "recorded as zero" are different facts, and MoneyMap never invents an actual
-/// to make a chart look complete.
-/// </summary>
+// One budgeted expense. ActualAmount is nullable on purpose - "not recorded" and "recorded as
+// zero" aren't the same thing.
 public sealed record BudgetLine
 {
     public required Guid Id { get; init; }

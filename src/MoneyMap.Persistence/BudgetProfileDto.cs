@@ -2,10 +2,8 @@ using MoneyMap.Domain;
 
 namespace MoneyMap.Persistence;
 
-// Plain, mutable, parameterless-constructor DTOs for JSON storage. Kept deliberately separate from
-// the Domain/Application records so that (a) serializer behavior never depends on record/readonly
-// struct edge cases, and (b) every load re-validates through the Domain layer's own factory
-// methods, which re-normalizes amounts and rejects corrupted or hand-edited data.
+// Plain mutable DTOs for JSON storage, kept separate from the Domain records. Every load goes
+// back through the Domain factory methods, which catches a hand-edited or corrupted file.
 
 public sealed class IncomeSourceDto
 {
@@ -49,7 +47,7 @@ public sealed class BudgetDto
 
 public sealed class BudgetProfileDto
 {
-    /// <summary>Schema version so a future format change can migrate old files instead of discarding them.</summary>
+    // Bump this if the on-disk format ever needs to change.
     public int SchemaVersion { get; set; } = 1;
     public Guid Id { get; set; }
     public BudgetDto Budget { get; set; } = new();

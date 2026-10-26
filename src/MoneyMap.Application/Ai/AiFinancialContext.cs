@@ -28,11 +28,8 @@ public sealed record AiGoalSnapshot
     public decimal? PlannedMonthlyContribution { get; init; }
 }
 
-/// <summary>
-/// The minimum financial context required to answer a question, assembled from
-/// <see cref="BudgetSummary"/> and goal projections. Deliberately excludes free-text notes and any
-/// data not needed to explain the budget, in line with "send only the minimum necessary context."
-/// </summary>
+// What actually gets sent to the assistant - totals and category breakdowns only, no free-text
+// notes or anything else that isn't needed to answer a question.
 public sealed record AiFinancialContext
 {
     public required string Currency { get; init; }

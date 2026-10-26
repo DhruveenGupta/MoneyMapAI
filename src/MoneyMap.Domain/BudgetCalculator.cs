@@ -1,9 +1,6 @@
 namespace MoneyMap.Domain;
 
-/// <summary>
-/// Pure, deterministic budget math. No randomness, no I/O, no LLM involvement — every figure the
-/// dashboard shows traces back to a method here.
-/// </summary>
+// All the budget math lives here - no I/O, nothing random, just arithmetic.
 public static class BudgetCalculator
 {
     public static BudgetSummary Summarize(Budget budget)
@@ -71,11 +68,7 @@ public static class BudgetCalculator
         };
     }
 
-    /// <summary>
-    /// Replays the budget as if <paramref name="categoryDeltas"/> were applied to each category's
-    /// planned total (positive = increase spending, negative = decrease), without mutating the
-    /// original budget. Powers the "what if I spend $50 less on restaurants" budget-builder scenario.
-    /// </summary>
+    // Used for the "what if I spent $50 less on X" preview - doesn't touch the real budget.
     public static BudgetSummary SimulateCategoryChange(Budget budget, IReadOnlyDictionary<ExpenseCategory, decimal> categoryDeltas)
     {
         ArgumentNullException.ThrowIfNull(budget);
@@ -84,12 +77,8 @@ public static class BudgetCalculator
         return Summarize(ApplyCategoryDeltas(budget, categoryDeltas));
     }
 
-    /// <summary>
-    /// Returns a new <see cref="Budget"/> with each category's planned total shifted by its delta
-    /// (positive = increase spending, negative = decrease), split evenly across that category's
-    /// existing lines and never reduced below zero. Used both for what-if previews and, once a
-    /// user explicitly confirms an AI-suggested change, for actually applying it.
-    /// </summary>
+    // Shifts each category's planned total by its delta, split evenly across that category's
+    // lines, floored at zero. Used for what-if previews and for applying a confirmed AI suggestion.
     public static Budget ApplyCategoryDeltas(Budget budget, IReadOnlyDictionary<ExpenseCategory, decimal> categoryDeltas)
     {
         ArgumentNullException.ThrowIfNull(budget);

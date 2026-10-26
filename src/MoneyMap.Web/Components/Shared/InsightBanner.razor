@@ -1,0 +1,38 @@
+@using MoneyMap.Domain
+
+<div class="mm-banner mm-banner-@SeverityClass" role="@(Insight.Severity == InsightSeverity.Critical ? "alert" : "status")">
+    <span aria-hidden="true" style="font-size:1.3rem;">@Icon</span>
+    <div>
+        <div style="font-weight:700;">@Insight.Title</div>
+        <div class="mm-text-sm">@Insight.Message</div>
+        @if (Insight.Assumptions.Count > 0)
+        {
+            <ul class="mm-text-sm" style="color:var(--mm-text-muted); margin:6px 0 0;">
+                @foreach (var assumption in Insight.Assumptions)
+                {
+                    <li>@assumption</li>
+                }
+            </ul>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public Insight Insight { get; set; } = null!;
+
+    private string SeverityClass => Insight.Severity switch
+    {
+        InsightSeverity.Critical => "critical",
+        InsightSeverity.Warning => "warning",
+        InsightSeverity.Positive => "positive",
+        _ => "info",
+    };
+
+    private string Icon => Insight.Severity switch
+    {
+        InsightSeverity.Critical => "⚠",
+        InsightSeverity.Warning => "⚠",
+        InsightSeverity.Positive => "✓",
+        _ => "ℹ",
+    };
+}

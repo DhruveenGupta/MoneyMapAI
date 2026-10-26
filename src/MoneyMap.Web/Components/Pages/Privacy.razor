@@ -1,0 +1,79 @@
+@page "/privacy"
+@rendermode InteractiveServer
+@inject BudgetProfileService ProfileService
+@inject JsonFileBudgetProfileRepositoryOptions StorageOptions
+@inject NavigationManager Nav
+@using MoneyMap.Persistence
+
+<PageTitle>MoneyMap AI - Privacy & Data</PageTitle>
+
+<h1>Privacy &amp; Data</h1>
+
+<section class="mm-card">
+    <h2>What MoneyMap stores</h2>
+    <ul>
+        <li>The income, expenses, savings goals, and preferences you type in. That's it.</li>
+        <li><strong>No bank account, card number, or login credential is ever requested or stored.</strong></li>
+        <li>Data is saved to a single local file on this server/machine, not to any third-party cloud service.</li>
+        <li>@EncryptionStatusText</li>
+    </ul>
+
+    <h2>What the AI assistant sees</h2>
+    <p>
+        When you ask the assistant a question, it receives only the minimum summary needed to answer: your totals, category
+        breakdown, and savings goal figures. Free-text notes you've added to expenses are never sent to an AI provider.
+        @(Assistant.RemoteProviderConfigured ? "A remote AI model is currently configured for this deployment." : "No remote AI provider is configured, so the built-in assistant answers entirely offline.")
+    </p>
+
+    <h2>Limitations of local storage</h2>
+    <p class="mm-text-sm" style="color:var(--mm-text-muted);">
+        This demo stores one budget profile per server instance (not per login) in a local file.
+        @(OperatingSystem.IsWindows() ? "On Windows, the file is encrypted at rest using the Windows Data Protection API, tied to the OS user account running this app." : "On this operating system, the file is stored as plain JSON, so anyone with file-system access to this machine could read it.")
+        There is no user authentication: anyone who can open this app can see and edit this data. This is appropriate for a
+        single-user demo, not for a shared or production deployment.
+    </p>
+</section>
+
+<section class="mm-card" style="margin-top:16px;">
+    <h2>Manage your data</h2>
+    <div style="display:flex; gap:12px; flex-wrap:wrap;">
+        <button class="mm-btn mm-btn-secondary" @onclick="() => _showResetConfirm = true">Reset to a blank budget</button>
+        <button class="mm-btn mm-btn-danger" @onclick="() => _showDeleteConfirm = true">Delete all data</button>
+    </div>
+</section>
+
+<ConfirmDialog IsOpen="_showResetConfirm" Title="Reset to a blank budget?"
+               Message="This clears your current income, expenses, and goals from view and starts a new blank budget. This cannot be undone."
+               ConfirmLabel="Reset" IsDestructive="true"
+               OnConfirm="ResetBudget" OnCancel="() => _showResetConfirm = false" />
+
+<ConfirmDialog IsOpen="_showDeleteConfirm" Title="Delete all data?"
+               Message="This permanently deletes everything stored by MoneyMap AI on this machine, including any backup of unreadable data. This cannot be undone."
+               ConfirmLabel="Delete everything" IsDestructive="true"
+               OnConfirm="DeleteAll" OnCancel="() => _showDeleteConfirm = false" />
+
+@code {
+    [Inject] private MoneyMap.Ai.AiAssistantCoordinator Assistant { get; set; } = null!;
+
+    private bool _showResetConfirm;
+    private bool _showDeleteConfirm;
+
+    private string EncryptionStatusText => StorageOptions.EnableEncryptionAtRest && OperatingSystem.IsWindows()
+        ? "Your data file is encrypted at rest (Windows DPAPI, current user only)."
+        : "Your data file is not encrypted at rest on this platform.";
+
+    private async Task ResetBudget()
+    {
+        _showResetConfirm = false;
+        var profile = await ProfileService.GetProfileAsync();
+        await ProfileService.ResetToBlankAsync(profile.Budget.Currency);
+        Nav.NavigateTo("/onboarding");
+    }
+
+    private async Task DeleteAll()
+    {
+        _showDeleteConfirm = false;
+        await ProfileService.DeleteAllDataAsync();
+        Nav.NavigateTo("/");
+    }
+}

@@ -1,0 +1,220 @@
+@page "/goals"
+@rendermode InteractiveServer
+@inject BudgetProfileService ProfileService
+@inject IClock Clock
+
+<PageTitle>MoneyMap AI - Savings Goals</PageTitle>
+
+<h1>Savings Goals</h1>
+<p style="max-width:62ch;">Set a target and MoneyMap works out a suggested monthly contribution and estimated completion date. Just the math, no pressure tactics.</p>
+
+@if (_profile is null)
+{
+    <p>Loading…</p>
+}
+else
+{
+    @if (_profile.SavingsGoals.Count == 0)
+    {
+        <EmptyState Icon="🎯" Title="No savings goals yet" Message="Add your first goal below." />
+    }
+    else
+    {
+        <div class="mm-grid mm-grid-2">
+            @foreach (var goal in _profile.SavingsGoals)
+            {
+                var projection = SavingsGoalCalculator.Project(goal, goal.PlannedMonthlyContribution ?? Money.Zero(goal.TargetAmount.Currency), Clock.Today);
+                var required = SavingsGoalCalculator.CalculateRequiredMonthlyContribution(goal, Clock.Today);
+                <div class="mm-card">
+                    <div class="mm-section-title">
+                        <h3>@goal.Name</h3>
+                        <span class="mm-badge @BadgeClass(projection.Status)">@StatusLabel(projection.Status)</span>
+                    </div>
+                    <ProgressBar PercentValue="@((double)projection.ProgressPercent)" />
+                    <p class="mm-text-sm" style="margin-top:8px;">
+                        @goal.CurrentAmount of @goal.TargetAmount saved@(goal.Deadline is { } d ? $" · target date {d:MMMM yyyy}" : "").
+                    </p>
+
+                    @if (projection.Status == GoalProgressStatus.Completed)
+                    {
+                        <p class="mm-text-sm" style="color:var(--mm-success-700);">🎉 Goal reached!</p>
+                    }
+                    else if (!goal.PlannedMonthlyContribution.HasValue)
+                    {
+                        <p class="mm-text-sm">No monthly contribution set yet.</p>
+                    }
+                    else if (projection.Status == GoalProgressStatus.Stalled)
+                    {
+                        <p class="mm-text-sm" style="color:var(--mm-warning-700);">At $0/month this goal will never complete. Set a contribution above zero.</p>
+                    }
+                    else
+                    {
+                        <p class="mm-text-sm">At @goal.PlannedMonthlyContribution/month: about @projection.MonthsToCompletion month(s), finishing around @projection.ProjectedCompletionDate:MMMM yyyy.</p>
+                    }
+
+                    @if (required.HasDeadline && !required.IsAlreadyComplete)
+                    {
+                        @if (required.DeadlineAlreadyPassed)
+                        {
+                            <p class="mm-text-sm" style="color:var(--mm-danger-700);">This goal's deadline has passed without being reached.</p>
+                        }
+                        else if (required.RequiredMonthlyContribution is { } reqAmount)
+                        {
+                            <p class="mm-text-sm" style="color:var(--mm-text-muted);">To hit the deadline, you'd need about @reqAmount/month.</p>
+                        }
+                    }
+
+                    <div style="display:flex; gap:8px; margin-top:10px;">
+                        <button class="mm-btn mm-btn-secondary mm-btn-sm" @onclick="() => EditGoal(goal)">Edit</button>
+                        <button class="mm-btn mm-btn-danger mm-btn-sm" @onclick="() => RemoveGoal(goal.Id)">Remove</button>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <section class="mm-card" style="margin-top:24px;">
+        <h2>@(_editingId.HasValue ? "Edit goal" : "Add a savings goal")</h2>
+        <div class="mm-grid mm-grid-4">
+            <div class="mm-field">
+                <label for="goal-name">Name</label>
+                <input id="goal-name" class="mm-input" @bind="_name" placeholder="e.g. Emergency fund" />
+            </div>
+            <div class="mm-field">
+                <label for="goal-target">Target amount</label>
+                <input id="goal-target" type="number" min="0.01" step="0.01" class="mm-input" @bind="_target" />
+            </div>
+            <div class="mm-field">
+                <label for="goal-current">Current amount saved</label>
+                <input id="goal-current" type="number" min="0" step="0.01" class="mm-input" @bind="_current" />
+            </div>
+            <div class="mm-field">
+                <label for="goal-contribution">Planned monthly contribution (optional)</label>
+                <input id="goal-contribution" type="number" min="0" step="0.01" class="mm-input" @bind="_contribution" />
+            </div>
+            <div class="mm-field">
+                <label for="goal-deadline">Target date (optional)</label>
+                <input id="goal-deadline" type="date" class="mm-input" @bind="_deadline" />
+            </div>
+        </div>
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <p class="mm-error-text" role="alert">@_error</p>
+        }
+        <div style="display:flex; gap:8px;">
+            <button class="mm-btn mm-btn-primary" @onclick="SaveGoal">@(_editingId.HasValue ? "Save changes" : "Add goal")</button>
+            @if (_editingId.HasValue)
+            {
+                <button class="mm-btn mm-btn-ghost" @onclick="CancelEdit">Cancel</button>
+            }
+        </div>
+    </section>
+}
+
+@code {
+    private BudgetProfile? _profile;
+    private Guid? _editingId;
+    private string _name = string.Empty;
+    private decimal? _target;
+    private decimal? _current;
+    private decimal? _contribution;
+    private DateOnly? _deadline;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _profile = await ProfileService.GetProfileAsync();
+    }
+
+    private void EditGoal(SavingsGoal goal)
+    {
+        _editingId = goal.Id;
+        _name = goal.Name;
+        _target = goal.TargetAmount.Amount;
+        _current = goal.CurrentAmount.Amount;
+        _contribution = goal.PlannedMonthlyContribution?.Amount;
+        _deadline = goal.Deadline;
+        _error = null;
+    }
+
+    private void CancelEdit()
+    {
+        _editingId = null;
+        _name = string.Empty;
+        _target = null;
+        _current = null;
+        _contribution = null;
+        _deadline = null;
+        _error = null;
+    }
+
+    private async Task SaveGoal()
+    {
+        _error = null;
+        if (string.IsNullOrWhiteSpace(_name))
+        {
+            _error = "Enter a name for this goal.";
+            return;
+        }
+
+        if (_target is null or <= 0)
+        {
+            _error = "Enter a target amount greater than zero.";
+            return;
+        }
+
+        try
+        {
+            if (_editingId.HasValue)
+            {
+                var existing = _profile!.SavingsGoals.Single(g => g.Id == _editingId.Value);
+                var updated = existing with
+                {
+                    Name = _name.Trim(),
+                    TargetAmount = new Money(_target.Value, _profile.Budget.Currency),
+                    CurrentAmount = new Money(_current ?? 0m, _profile.Budget.Currency),
+                    Deadline = _deadline,
+                    PlannedMonthlyContribution = _contribution.HasValue ? new Money(_contribution.Value, _profile.Budget.Currency) : null,
+                };
+                _profile = await ProfileService.ReplaceSavingsGoalAsync(updated);
+            }
+            else
+            {
+                _profile = await ProfileService.AddSavingsGoalAsync(_name, _target.Value, _current ?? 0m, _deadline, _contribution);
+            }
+
+            CancelEdit();
+        }
+        catch (ArgumentException ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private async Task RemoveGoal(Guid id)
+    {
+        _profile = await ProfileService.RemoveSavingsGoalAsync(id);
+        if (_editingId == id)
+        {
+            CancelEdit();
+        }
+    }
+
+    private static string BadgeClass(GoalProgressStatus status) => status switch
+    {
+        GoalProgressStatus.Completed => "mm-badge-positive",
+        GoalProgressStatus.OnTrack => "mm-badge-positive",
+        GoalProgressStatus.BehindSchedule => "mm-badge-warning",
+        GoalProgressStatus.Stalled => "mm-badge-critical",
+        _ => "mm-badge-info",
+    };
+
+    private static string StatusLabel(GoalProgressStatus status) => status switch
+    {
+        GoalProgressStatus.Completed => "Completed",
+        GoalProgressStatus.OnTrack => "On track",
+        GoalProgressStatus.BehindSchedule => "Behind schedule",
+        GoalProgressStatus.Stalled => "Stalled",
+        _ => "No deadline set",
+    };
+}

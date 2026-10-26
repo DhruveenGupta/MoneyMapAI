@@ -22,14 +22,8 @@ internal sealed record AnthropicResponse([property: JsonPropertyName("content")]
 
 internal sealed record AnthropicError([property: JsonPropertyName("type")] string? Type, [property: JsonPropertyName("message")] string? Message);
 
-/// <summary>
-/// Optional remote provider backed by the Anthropic Messages API. The API key is read from
-/// server-side configuration only (see <see cref="AnthropicAiAssistantOptions"/>) and is never sent
-/// to, or readable by, the Blazor client. This provider only ever produces natural-language
-/// explanations of numbers it is given — it must never be trusted to compute a financial result
-/// itself, and any "proposed change" it suggests is surfaced for explicit user confirmation rather
-/// than applied automatically.
-/// </summary>
+// Optional provider that calls the real Anthropic API. The key stays server-side (see
+// AnthropicAiAssistantOptions) - it's never sent to the Blazor client.
 public sealed class AnthropicAiAssistant : IAiAssistant
 {
     private const string SystemPromptTemplate = """
@@ -49,7 +43,7 @@ public sealed class AnthropicAiAssistant : IAiAssistant
           [{"category":"<one of Housing,Utilities,Groceries,SchoolMeals,Transportation,Subscriptions,Debt,Healthcare,Discretionary,Other>","deltaAmount":<number, negative=reduce>,"rationale":"<short reason>"}]
           ```
           Only include this block when you are proposing an actual numeric change. The user must
-          explicitly confirm it in the app before anything changes — never say the change is already made.
+          explicitly confirm it in the app before anything changes. Never say the change is already made.
         - Keep answers concise, plain-language, and non-judgmental. Do not shame the user about spending.
         - Include a brief disclaimer when discussing investments: projections are hypothetical, not advice.
         """;

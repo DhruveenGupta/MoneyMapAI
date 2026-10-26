@@ -2,19 +2,14 @@ namespace MoneyMap.Domain;
 
 public enum GoalProgressStatus
 {
-    /// <summary>Current amount already meets or exceeds the target.</summary>
     Completed,
-
-    /// <summary>A contribution is being made and, if a deadline exists, it will be met.</summary>
     OnTrack,
-
-    /// <summary>A deadline exists but the current contribution will not reach it in time.</summary>
     BehindSchedule,
 
-    /// <summary>The contribution is zero (or negative), so the goal will never complete at this rate.</summary>
+    // Contribution is zero or negative, so this goal never gets there at this rate.
     Stalled,
 
-    /// <summary>No deadline was set, so "on track" cannot be evaluated — only a completion estimate is given.</summary>
+    // No deadline set, so we can only give a completion estimate, not an on-track/behind verdict.
     NoDeadline,
 }
 
@@ -31,7 +26,7 @@ public sealed record SavingsGoalProjection
     public decimal ProgressPercent { get; init; }
 }
 
-/// <summary>Suggested contribution to meet a goal's deadline, computed independently of whatever the user is currently contributing.</summary>
+// Contribution needed to hit the deadline, regardless of what's actually being contributed now.
 public sealed record RequiredContributionResult
 {
     public required bool IsAlreadyComplete { get; init; }
@@ -45,11 +40,8 @@ public sealed record RequiredContributionResult
     public Money? RequiredMonthlyContribution { get; init; }
 }
 
-/// <summary>
-/// Deterministic savings-goal math. Every projection is a straight-line estimate at a fixed
-/// contribution — no investment growth is assumed here (see <see cref="InvestmentSimulator"/> for
-/// that) — so the numbers stay easy to audit by hand.
-/// </summary>
+// Straight-line savings projections at a fixed contribution, no investment growth (that's what
+// InvestmentSimulator is for).
 public static class SavingsGoalCalculator
 {
     public static RequiredContributionResult CalculateRequiredMonthlyContribution(SavingsGoal goal, DateOnly asOf)
@@ -135,7 +127,7 @@ public static class SavingsGoalCalculator
         };
     }
 
-    /// <summary>Whole calendar months between two dates, ignoring day-of-month (a generous, easy-to-explain approximation).</summary>
+    // Whole calendar months between two dates, ignoring day-of-month.
     private static int MonthsBetween(DateOnly from, DateOnly to)
     {
         return ((to.Year - from.Year) * 12) + (to.Month - from.Month);

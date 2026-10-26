@@ -1,0 +1,357 @@
+@page "/onboarding"
+@rendermode InteractiveServer
+@inject BudgetProfileService ProfileService
+
+<PageTitle>MoneyMap AI - Onboarding</PageTitle>
+
+<h1>Set up your budget</h1>
+<p style="max-width:62ch;">Every field below is optional and editable later. Amounts are in <strong>@_profile?.Budget.Currency</strong>@(_canChangeCurrency ? "" : " (locked once you've added income or expenses)").</p>
+
+@if (_profile is null)
+{
+    <p>Loading…</p>
+}
+else
+{
+    @if (_canChangeCurrency)
+    {
+        <div class="mm-card" style="max-width:420px;">
+            <div class="mm-field">
+                <label for="currency-select">Currency</label>
+                <select id="currency-select" class="mm-select" value="@_profile.Budget.Currency" @onchange="OnCurrencyChanged">
+                    @foreach (var currencyCode in CurrencyCodes)
+                    {
+                        <option value="@currencyCode">@currencyCode</option>
+                    }
+                </select>
+            </div>
+        </div>
+    }
+
+    <section class="mm-card" aria-labelledby="income-heading">
+        <div class="mm-section-title">
+            <h2 id="income-heading">Income</h2>
+        </div>
+
+        @if (_profile.Budget.IncomeSources.Count > 0)
+        {
+            <div class="mm-table-scroll">
+                <table class="mm-table">
+                    <thead><tr><th scope="col">Name</th><th scope="col">Amount</th><th scope="col">Frequency</th><th scope="col">Active</th><th scope="col"><span class="mm-visually-hidden">Actions</span></th></tr></thead>
+                    <tbody>
+                        @foreach (var income in _profile.Budget.IncomeSources)
+                        {
+                            <tr>
+                                <td>@income.Name</td>
+                                <td>@income.NetAmount</td>
+                                <td>@IncomeFrequencyConverter.Describe(income.Frequency)</td>
+                                <td>@(income.IsActive ? "Yes" : "No")</td>
+                                <td style="display:flex; gap:6px;">
+                                    <button class="mm-btn mm-btn-secondary mm-btn-sm" @onclick="() => EditIncome(income)">Edit</button>
+                                    <button class="mm-btn mm-btn-danger mm-btn-sm" @onclick="() => RemoveIncome(income.Id)">Remove</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <p class="mm-text-sm" style="color:var(--mm-text-muted);">No income sources yet.</p>
+        }
+
+        <hr class="mm-divider" />
+
+        <h3>@(_editingIncomeId.HasValue ? "Edit income source" : "Add an income source")</h3>
+        <div class="mm-grid mm-grid-4">
+            <div class="mm-field">
+                <label for="income-name">Name</label>
+                <input id="income-name" class="mm-input" @bind="_incomeName" placeholder="e.g. Part-time job" />
+            </div>
+            <div class="mm-field">
+                <label for="income-net">Net (take-home) amount</label>
+                <input id="income-net" type="number" min="0" step="0.01" class="mm-input" @bind="_incomeNet" />
+            </div>
+            <div class="mm-field">
+                <label for="income-gross">Gross amount (optional)</label>
+                <input id="income-gross" type="number" min="0" step="0.01" class="mm-input" @bind="_incomeGross" />
+            </div>
+            <div class="mm-field">
+                <label for="income-frequency">Frequency</label>
+                <select id="income-frequency" class="mm-select" @bind="_incomeFrequency">
+                    @foreach (var freq in Enum.GetValues<IncomeFrequency>())
+                    {
+                        <option value="@freq">@IncomeFrequencyConverter.Describe(freq)</option>
+                    }
+                </select>
+            </div>
+        </div>
+        @if (!string.IsNullOrEmpty(_incomeError))
+        {
+            <p class="mm-error-text" role="alert">@_incomeError</p>
+        }
+        <div style="display:flex; gap:8px;">
+            <button class="mm-btn mm-btn-primary" @onclick="SaveIncome">@(_editingIncomeId.HasValue ? "Save changes" : "Add income")</button>
+            @if (_editingIncomeId.HasValue)
+            {
+                <button class="mm-btn mm-btn-ghost" @onclick="CancelIncomeEdit">Cancel</button>
+            }
+        </div>
+    </section>
+
+    <section class="mm-card" aria-labelledby="expense-heading">
+        <div class="mm-section-title">
+            <h2 id="expense-heading">Expenses</h2>
+        </div>
+
+        @if (_profile.Budget.Expenses.Count > 0)
+        {
+            <div class="mm-table-scroll">
+                <table class="mm-table">
+                    <thead><tr><th scope="col">Name</th><th scope="col">Category</th><th scope="col">Planned</th><th scope="col">Actual</th><th scope="col"><span class="mm-visually-hidden">Actions</span></th></tr></thead>
+                    <tbody>
+                        @foreach (var line in _profile.Budget.Expenses)
+                        {
+                            <tr>
+                                <td>@line.Name</td>
+                                <td>@ExpenseCategoryInfo.DisplayName(line.Category)</td>
+                                <td>@line.PlannedAmount</td>
+                                <td>@(line.ActualAmount?.ToString() ?? "—")</td>
+                                <td style="display:flex; gap:6px;">
+                                    <button class="mm-btn mm-btn-secondary mm-btn-sm" @onclick="() => EditExpense(line)">Edit</button>
+                                    <button class="mm-btn mm-btn-danger mm-btn-sm" @onclick="() => RemoveExpense(line.Id)">Remove</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <p class="mm-text-sm" style="color:var(--mm-text-muted);">No expenses yet.</p>
+        }
+
+        <hr class="mm-divider" />
+
+        <h3>@(_editingExpenseId.HasValue ? "Edit expense" : "Add an expense")</h3>
+        <div class="mm-grid mm-grid-4">
+            <div class="mm-field">
+                <label for="expense-name">Name</label>
+                <input id="expense-name" class="mm-input" @bind="_expenseName" placeholder="e.g. Rent" />
+            </div>
+            <div class="mm-field">
+                <label for="expense-category">Category</label>
+                <select id="expense-category" class="mm-select" @bind="_expenseCategory">
+                    @foreach (var cat in Enum.GetValues<ExpenseCategory>())
+                    {
+                        <option value="@cat">@ExpenseCategoryInfo.DisplayName(cat)</option>
+                    }
+                </select>
+            </div>
+            <div class="mm-field">
+                <label for="expense-planned">Planned monthly amount</label>
+                <input id="expense-planned" type="number" min="0" step="0.01" class="mm-input" @bind="_expensePlanned" />
+            </div>
+            <div class="mm-field">
+                <label for="expense-actual">Actual amount so far (optional)</label>
+                <input id="expense-actual" type="number" min="0" step="0.01" class="mm-input" @bind="_expenseActual" />
+                <div class="mm-hint">Leave blank if you haven't tracked actual spending yet.</div>
+            </div>
+        </div>
+        @if (!string.IsNullOrEmpty(_expenseError))
+        {
+            <p class="mm-error-text" role="alert">@_expenseError</p>
+        }
+        <div style="display:flex; gap:8px;">
+            <button class="mm-btn mm-btn-primary" @onclick="SaveExpense">@(_editingExpenseId.HasValue ? "Save changes" : "Add expense")</button>
+            @if (_editingExpenseId.HasValue)
+            {
+                <button class="mm-btn mm-btn-ghost" @onclick="CancelExpenseEdit">Cancel</button>
+            }
+        </div>
+    </section>
+
+    <section class="mm-card">
+        <h2>What's next?</h2>
+        <p>Once your income and expenses look right, head to the <a href="/dashboard">Dashboard</a> to see your full picture, or set up a <a href="/goals">Savings Goal</a>.</p>
+    </section>
+}
+
+@code {
+    private BudgetProfile? _profile;
+
+    // Currency
+    private bool _canChangeCurrency => _profile is { Budget.IncomeSources.Count: 0, Budget.Expenses.Count: 0 };
+    private static readonly string[] CurrencyCodes = ["USD", "EUR", "GBP", "CAD", "AUD", "INR"];
+
+    // Income form state
+    private Guid? _editingIncomeId;
+    private string _incomeName = string.Empty;
+    private decimal? _incomeNet;
+    private decimal? _incomeGross;
+    private IncomeFrequency _incomeFrequency = IncomeFrequency.Monthly;
+    private string? _incomeError;
+
+    // Expense form state
+    private Guid? _editingExpenseId;
+    private string _expenseName = string.Empty;
+    private ExpenseCategory _expenseCategory = ExpenseCategory.Housing;
+    private decimal? _expensePlanned;
+    private decimal? _expenseActual;
+    private string? _expenseError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _profile = await ProfileService.GetProfileAsync();
+    }
+
+    private async Task OnCurrencyChanged(ChangeEventArgs e)
+    {
+        var currency = e.Value?.ToString() ?? "USD";
+        _profile = await ProfileService.ResetToBlankAsync(currency);
+    }
+
+    private void EditIncome(IncomeSource income)
+    {
+        _editingIncomeId = income.Id;
+        _incomeName = income.Name;
+        _incomeNet = income.NetAmount.Amount;
+        _incomeGross = income.GrossAmount?.Amount;
+        _incomeFrequency = income.Frequency;
+        _incomeError = null;
+    }
+
+    private void CancelIncomeEdit()
+    {
+        _editingIncomeId = null;
+        _incomeName = string.Empty;
+        _incomeNet = null;
+        _incomeGross = null;
+        _incomeFrequency = IncomeFrequency.Monthly;
+        _incomeError = null;
+    }
+
+    private async Task SaveIncome()
+    {
+        _incomeError = null;
+        if (string.IsNullOrWhiteSpace(_incomeName))
+        {
+            _incomeError = "Enter a name for this income source.";
+            return;
+        }
+
+        if (_incomeNet is null)
+        {
+            _incomeError = "Enter the take-home (net) amount.";
+            return;
+        }
+
+        try
+        {
+            if (_editingIncomeId.HasValue)
+            {
+                var existing = _profile!.Budget.IncomeSources.Single(i => i.Id == _editingIncomeId.Value);
+                var updated = existing with
+                {
+                    Name = _incomeName.Trim(),
+                    NetAmount = new Money(_incomeNet.Value, _profile.Budget.Currency),
+                    GrossAmount = _incomeGross.HasValue ? new Money(_incomeGross.Value, _profile.Budget.Currency) : null,
+                    Frequency = _incomeFrequency,
+                };
+                _profile = await ProfileService.ReplaceIncomeSourceAsync(updated);
+            }
+            else
+            {
+                _profile = await ProfileService.AddIncomeSourceAsync(_incomeName, _incomeNet.Value, _incomeFrequency, _incomeGross);
+            }
+
+            CancelIncomeEdit();
+        }
+        catch (ArgumentException ex)
+        {
+            _incomeError = ex.Message;
+        }
+    }
+
+    private async Task RemoveIncome(Guid id)
+    {
+        _profile = await ProfileService.RemoveIncomeSourceAsync(id);
+        if (_editingIncomeId == id)
+        {
+            CancelIncomeEdit();
+        }
+    }
+
+    private void EditExpense(BudgetLine line)
+    {
+        _editingExpenseId = line.Id;
+        _expenseName = line.Name;
+        _expenseCategory = line.Category;
+        _expensePlanned = line.PlannedAmount.Amount;
+        _expenseActual = line.ActualAmount?.Amount;
+        _expenseError = null;
+    }
+
+    private void CancelExpenseEdit()
+    {
+        _editingExpenseId = null;
+        _expenseName = string.Empty;
+        _expenseCategory = ExpenseCategory.Housing;
+        _expensePlanned = null;
+        _expenseActual = null;
+        _expenseError = null;
+    }
+
+    private async Task SaveExpense()
+    {
+        _expenseError = null;
+        if (string.IsNullOrWhiteSpace(_expenseName))
+        {
+            _expenseError = "Enter a name for this expense.";
+            return;
+        }
+
+        if (_expensePlanned is null)
+        {
+            _expenseError = "Enter a planned monthly amount.";
+            return;
+        }
+
+        try
+        {
+            if (_editingExpenseId.HasValue)
+            {
+                var existing = _profile!.Budget.Expenses.Single(l => l.Id == _editingExpenseId.Value);
+                var updated = existing with
+                {
+                    Name = _expenseName.Trim(),
+                    Category = _expenseCategory,
+                    PlannedAmount = new Money(_expensePlanned.Value, _profile.Budget.Currency),
+                    ActualAmount = _expenseActual.HasValue ? new Money(_expenseActual.Value, _profile.Budget.Currency) : null,
+                };
+                _profile = await ProfileService.ReplaceExpenseLineAsync(updated);
+            }
+            else
+            {
+                _profile = await ProfileService.AddExpenseLineAsync(_expenseName, _expenseCategory, _expensePlanned.Value, _expenseActual, notes: null);
+            }
+
+            CancelExpenseEdit();
+        }
+        catch (ArgumentException ex)
+        {
+            _expenseError = ex.Message;
+        }
+    }
+
+    private async Task RemoveExpense(Guid id)
+    {
+        _profile = await ProfileService.RemoveExpenseLineAsync(id);
+        if (_editingExpenseId == id)
+        {
+            CancelExpenseEdit();
+        }
+    }
+}

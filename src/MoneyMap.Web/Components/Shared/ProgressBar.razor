@@ -1,0 +1,21 @@
+<div>
+    @if (!string.IsNullOrWhiteSpace(Label))
+    {
+        <div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom:4px;">
+            <span style="font-weight:600;">@Label</span>
+            <span>@DisplayPercent%</span>
+        </div>
+    }
+    <div class="mm-progress" role="progressbar" aria-valuenow="@ClampedPercent" aria-valuemin="0" aria-valuemax="100" aria-label="@(string.IsNullOrWhiteSpace(Label) ? "Progress" : Label)">
+        <div class="mm-progress-fill @(IsOver ? "mm-progress-over" : "")" style="width:@ClampedPercent%"></div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public double PercentValue { get; set; }
+    [Parameter] public bool IsOver { get; set; }
+
+    private double ClampedPercent => Math.Clamp(PercentValue, 0, 100);
+    private string DisplayPercent => Math.Round(PercentValue, 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
+}

@@ -11,10 +11,7 @@ public sealed record InvestmentYearPoint
     public Money? InflationAdjustedBalance { get; init; }
 }
 
-/// <summary>
-/// Result of running the hypothetical investment simulator. Every figure is clearly a projection
-/// of the <see cref="InvestmentAssumptions"/> supplied, never a guarantee or a market fact.
-/// </summary>
+// Output of the simulator - a projection based on the assumptions given, not a guarantee.
 public sealed record InvestmentProjection
 {
     public required InvestmentAssumptions Assumptions { get; init; }
@@ -30,11 +27,8 @@ public sealed record InvestmentProjection
     public required IReadOnlyList<InvestmentYearPoint> YearlySeries { get; init; }
 }
 
-/// <summary>
-/// Educational, hypothetical compounding simulator. Uses monthly compounding of
-/// (annual return - annual fee) with contributions added at the end of each month. This is a
-/// simplified model appropriate for financial education, not a brokerage-grade projection tool.
-/// </summary>
+// Monthly compounding of (annual return - annual fee), contribution added at the end of each
+// month. Simple model, good enough for teaching, not a brokerage-grade tool.
 public static class InvestmentSimulator
 {
     public static InvestmentProjection Simulate(InvestmentAssumptions assumptions)

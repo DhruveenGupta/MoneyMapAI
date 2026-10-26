@@ -6,12 +6,8 @@ using MoneyMap.Domain;
 
 namespace MoneyMap.Ai;
 
-/// <summary>
-/// Extracts and strictly validates the optional ```proposed-changes fenced JSON block an LLM
-/// response may contain. Any entry that fails validation (unknown category, non-finite or
-/// unreasonably large amount, missing rationale) is silently dropped rather than surfaced — a
-/// malformed or adversarial model output must never reach the UI as if it were a safe suggestion.
-/// </summary>
+// Pulls the ```proposed-changes block out of an LLM response and validates each entry - bad
+// category, huge amount, missing rationale, whatever doesn't pass just gets dropped quietly.
 internal static partial class ProposedChangeParser
 {
     private const decimal MaxReasonableMonthlyDelta = 1_000_000m;

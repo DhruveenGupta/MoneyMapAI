@@ -1,15 +1,11 @@
 namespace MoneyMap.Ai;
 
-/// <summary>
-/// Configuration for the optional remote AI provider. <see cref="ApiKey"/> must come from
-/// server-side configuration (environment variable or user-secrets) — it must never be embedded in
-/// client-served code or checked into source control. See .env.example.
-/// </summary>
+// ApiKey should come from an environment variable or user-secrets, not get checked into git.
 public sealed class AnthropicAiAssistantOptions
 {
     public const string SectionName = "Ai:Anthropic";
 
-    /// <summary>Server-side only. When null/empty, the remote provider is disabled and the app uses the rule-based assistant.</summary>
+    // Empty/null means no remote provider - falls back to the rule-based assistant.
     public string? ApiKey { get; set; }
 
     public string Model { get; set; } = "claude-sonnet-5";

@@ -3,13 +3,8 @@ using MoneyMap.Application.Ai;
 
 namespace MoneyMap.Ai;
 
-/// <summary>
-/// The single AI entry point the Web layer talks to. Tries a configured remote provider first (if
-/// any) and transparently falls back to the always-available rule-based assistant on any provider
-/// failure, so a network outage, missing API key, timeout, or malformed response never takes down
-/// the AI assistant feature — only degrades it, with that degradation disclosed to the caller via
-/// <see cref="AiAssistantReply.IsFallback"/>.
-/// </summary>
+// Tries the remote provider first if one's configured, falls back to the rule-based assistant
+// on any failure (timeout, bad API key, whatever) so a network hiccup doesn't just break the chat.
 public sealed class AiAssistantCoordinator
 {
     private readonly IAiAssistant? _remoteProvider;
@@ -23,7 +18,6 @@ public sealed class AiAssistantCoordinator
         _remoteProvider = remoteProvider;
     }
 
-    /// <summary>True when a remote provider is configured and will be attempted before falling back.</summary>
     public bool RemoteProviderConfigured => _remoteProvider is not null;
 
     public async Task<AiAssistantReply> AskAsync(AiAssistantRequest request, CancellationToken cancellationToken = default)

@@ -1,0 +1,13 @@
+<div class="mm-empty-state">
+    <div style="font-size:2rem;" aria-hidden="true">@Icon</div>
+    <h3>@Title</h3>
+    <p>@Message</p>
+    @ChildContent
+</div>
+
+@code {
+    [Parameter] public string Icon { get; set; } = "📭";
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Message { get; set; } = string.Empty;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

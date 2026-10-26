@@ -1,0 +1,35 @@
+@if (IsOpen)
+{
+    <div class="mm-dialog-backdrop" @onclick="Cancel">
+        <div class="mm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="mm-confirm-title" aria-describedby="mm-confirm-desc"
+             @onclick:stopPropagation="true" @onkeydown="OnKeyDown">
+            <h2 id="mm-confirm-title">@Title</h2>
+            <p id="mm-confirm-desc">@Message</p>
+            @ChildContent
+            <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
+                <button type="button" class="mm-btn mm-btn-secondary" @onclick="Cancel">@CancelLabel</button>
+                <button type="button" class="mm-btn @(IsDestructive ? "mm-btn-danger" : "mm-btn-primary")" @ref="_confirmButtonRef" @onclick="Confirm">@ConfirmLabel</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public string Title { get; set; } = "Confirm";
+    [Parameter] public string Message { get; set; } = "Are you sure?";
+    [Parameter] public string ConfirmLabel { get; set; } = "Confirm";
+    [Parameter] public string CancelLabel { get; set; } = "Cancel";
+    [Parameter] public bool IsDestructive { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public EventCallback OnConfirm { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private ElementReference _confirmButtonRef;
+
+    private Task Confirm() => OnConfirm.InvokeAsync();
+
+    private Task Cancel() => OnCancel.InvokeAsync();
+
+    private Task OnKeyDown(KeyboardEventArgs e) => e.Key == "Escape" ? Cancel() : Task.CompletedTask;
+}

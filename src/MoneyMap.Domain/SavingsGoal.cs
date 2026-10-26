@@ -12,7 +12,7 @@ public sealed record SavingsGoal
 
     public DateOnly? Deadline { get; init; }
 
-    /// <summary>What the user currently intends to contribute per month, if they've decided. Optional.</summary>
+    // Optional - what the user plans to put toward this per month.
     public Money? PlannedMonthlyContribution { get; init; }
 
     public required DateOnly CreatedOn { get; init; }

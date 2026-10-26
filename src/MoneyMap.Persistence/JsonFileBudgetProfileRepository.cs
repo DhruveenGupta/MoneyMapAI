@@ -7,24 +7,17 @@ namespace MoneyMap.Persistence;
 
 public sealed class JsonFileBudgetProfileRepositoryOptions
 {
-    /// <summary>Directory the profile file (and any corrupted-file backups) are stored in.</summary>
     public required string DataDirectory { get; init; }
 
     public string FileName { get; init; } = "moneymap-profile.dat";
 
-    /// <summary>
-    /// When true and running on Windows, the file is encrypted at rest using the Windows Data
-    /// Protection API (DPAPI), scoped to the current OS user account. On non-Windows platforms this
-    /// has no effect and the file is stored as plain JSON — documented in PRIVACY.md.
-    /// </summary>
+    // On Windows this encrypts the file with DPAPI, scoped to the current user account. No
+    // effect on other platforms - the file is just plain JSON there.
     public bool EnableEncryptionAtRest { get; init; } = true;
 }
 
-/// <summary>
-/// Local, single-user JSON file persistence. There is no multi-tenant isolation and no network
-/// access: the entire threat model is "another process or user on this same machine." See
-/// docs/PRIVACY_AND_PERSISTENCE.md for the documented limitations of this approach.
-/// </summary>
+// Single-user JSON file on disk. No multi-tenancy, no network access - this is meant for one
+// person running the app on their own machine, not a shared deployment.
 public sealed class JsonFileBudgetProfileRepository : IBudgetProfileRepository
 {
     private static readonly byte[] EncryptedHeader = "MMENC1\n"u8.ToArray();
@@ -88,8 +81,7 @@ public sealed class JsonFileBudgetProfileRepository : IBudgetProfileRepository
         {
             var tempPath = _filePath + ".tmp";
             await File.WriteAllBytesAsync(tempPath, payload, cancellationToken).ConfigureAwait(false);
-            // Atomic swap: a crash or power loss between these two lines leaves either the old
-            // file intact or the fully-written temp file — never a half-written profile.
+            // Write to a temp file then swap, so a crash mid-write can't leave a half-written profile.
             File.Move(tempPath, _filePath, overwrite: true);
         }
         finally

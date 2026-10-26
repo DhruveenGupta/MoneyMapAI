@@ -1,9 +1,6 @@
 namespace MoneyMap.Domain;
 
-/// <summary>
-/// User-provided assumptions for the educational investment simulator. Every field here is a
-/// hypothetical input, not a fact — the simulator must never claim these predict real returns.
-/// </summary>
+// Hypothetical inputs for the investment simulator - none of this predicts real returns.
 public sealed record InvestmentAssumptions
 {
     public required Money InitialInvestment { get; init; }
@@ -12,13 +9,13 @@ public sealed record InvestmentAssumptions
 
     public required int YearsHorizon { get; init; }
 
-    /// <summary>Assumed average annual return, as a percent (e.g. 7 for 7%). May be zero or negative.</summary>
+    // Percent, e.g. 7 for 7%. Can be zero or negative.
     public required decimal AnnualReturnPercent { get; init; }
 
-    /// <summary>Optional assumed annual inflation rate, as a percent, used to show a "today's dollars" value.</summary>
+    // Optional, used to show a "today's dollars" value.
     public decimal? AnnualInflationPercent { get; init; }
 
-    /// <summary>Optional annual fee/expense ratio, as a percent, subtracted from the return before compounding.</summary>
+    // Optional expense ratio, subtracted from the return before compounding.
     public decimal? AnnualFeePercent { get; init; }
 
     public static InvestmentAssumptions Validate(InvestmentAssumptions assumptions)

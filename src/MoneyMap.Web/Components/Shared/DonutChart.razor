@@ -1,0 +1,79 @@
+@* Donut chart for share-of-total views. Legend text labels each slice too, not just color. *@
+
+@{
+    var total = Data.Sum(d => d.Value);
+}
+
+<div style="display:flex; gap:24px; align-items:center; flex-wrap:wrap;">
+    <svg viewBox="0 0 120 120" width="160" height="160" role="img" aria-label="@AriaSummary">
+        <circle cx="60" cy="60" r="@Radius" fill="none" stroke="var(--mm-neutral-200)" stroke-width="18" />
+        @{
+            double cumulative = 0;
+        }
+        @for (var i = 0; i < Data.Count; i++)
+        {
+            var item = Data[i];
+            var fraction = total > 0 ? (double)(item.Value / total) : 0;
+            var dash = fraction * Circumference;
+            var gap = Circumference - dash;
+            var offset = -cumulative;
+            var color = Palette[i % Palette.Length];
+            cumulative += dash;
+            <circle cx="60" cy="60" r="@Radius" fill="none" stroke="@color" stroke-width="18"
+                    stroke-dasharray="@($"{dash.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)} {gap.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)}")"
+                    stroke-dashoffset="@offset.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)"
+                    transform="rotate(-90 60 60)" />
+        }
+        <text x="60" y="56" text-anchor="middle" font-size="12" fill="var(--mm-text)" font-weight="700">@FormatMoney(total, Currency)</text>
+        <text x="60" y="70" text-anchor="middle" font-size="7" fill="var(--mm-text-muted)">total</text>
+    </svg>
+
+    <ul style="list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px;" aria-hidden="true">
+        @for (var i = 0; i < Data.Count; i++)
+        {
+            var item = Data[i];
+            var pct = total > 0 ? Math.Round((double)(item.Value / total) * 100, 1) : 0;
+            <li style="display:flex; align-items:center; gap:8px; font-size:0.88rem;">
+                <span style="width:12px; height:12px; border-radius:3px; background:@Palette[i % Palette.Length]; display:inline-block;"></span>
+                <span>@item.Label: @FormatMoney(item.Value, item.Currency) (@pct%)</span>
+            </li>
+        }
+    </ul>
+</div>
+
+<details class="mm-text-sm" style="margin-top:10px;">
+    <summary style="cursor:pointer; font-weight:600;">View as data table</summary>
+    <div class="mm-table-scroll">
+        <table class="mm-table">
+            <thead><tr><th scope="col">Category</th><th scope="col">Amount</th><th scope="col">Share</th></tr></thead>
+            <tbody>
+                @foreach (var item in Data)
+                {
+                    var pct = total > 0 ? Math.Round((double)(item.Value / total) * 100, 1) : 0;
+                    <tr><td>@item.Label</td><td>@FormatMoney(item.Value, item.Currency)</td><td>@pct%</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</details>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<ChartDatum> Data { get; set; } = Array.Empty<ChartDatum>();
+    [Parameter] public string Currency { get; set; } = "USD";
+
+    private const double Radius = 42;
+    private static readonly double Circumference = 2 * Math.PI * Radius;
+
+    private static readonly string[] Palette =
+    [
+        "var(--mm-primary-500)", "var(--mm-accent-500)", "var(--mm-info-500)",
+        "var(--mm-success-500)", "var(--mm-warning-500)", "var(--mm-danger-500)",
+        "var(--mm-primary-300)", "var(--mm-neutral-500)",
+    ];
+
+    private string AriaSummary => Data.Count == 0
+        ? "No data to chart yet."
+        : "Donut chart showing each category's share of the total. Full values are listed in the data table below.";
+
+    private static string FormatMoney(decimal amount, string currency) => new MoneyMap.Domain.Money(amount, currency).ToString();
+}

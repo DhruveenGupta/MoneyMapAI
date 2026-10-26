@@ -5,12 +5,8 @@ using MoneyMap.Domain;
 
 namespace MoneyMap.Ai;
 
-/// <summary>
-/// The default, always-available assistant. Performs no network calls and requires no
-/// credentials, so core AI functionality never depends on an external vendor being reachable.
-/// Every number it states comes directly from the supplied <see cref="AiFinancialContext"/> or
-/// from a Domain-layer calculator — it never invents a figure.
-/// </summary>
+// Default assistant, no network calls or API key needed. Keyword-matches the question and
+// answers with real numbers from AiFinancialContext.
 public sealed partial class RuleBasedAiAssistant : IAiAssistant
 {
     public string ProviderName => "MoneyMap Built-in Assistant";
@@ -152,7 +148,7 @@ public sealed partial class RuleBasedAiAssistant : IAiAssistant
         });
 
         return $"Purely hypothetically, contributing {FormatMoney(monthly, ctx.Currency)}/month for {years} years: " + string.Join("; ", results) +
-               ". This is a simplified, hypothetical projection, not a prediction — real returns vary and are never guaranteed. Visit the Investment Simulator for full assumptions.";
+               ". This is a simplified, hypothetical projection, not a prediction - real returns vary and are never guaranteed. Visit the Investment Simulator for full assumptions.";
     }
 
     private static decimal? ExtractFirstDollarAmount(string message)
@@ -202,11 +198,11 @@ public sealed partial class RuleBasedAiAssistant : IAiAssistant
 
         public const string CompoundInterest =
             "Compound interest is interest earned on both your original amount and on interest you've already earned, so growth accelerates over time compared to simple interest. " +
-            "The earlier money is invested or saved, the more time compounding has to work — this is why starting small but starting early is often emphasized over waiting to save a large amount.";
+            "The earlier money is invested or saved, the more time compounding has to work, which is why starting small but starting early usually beats waiting to save a large amount.";
 
         public const string EmergencyFund =
             "An emergency fund is money set aside specifically for unplanned expenses (a car repair, a medical bill, a period without income) so you don't have to rely on high-interest debt. " +
-            "A common starting target is three to six months of essential expenses, but any amount is a meaningful start — you can track progress toward one on the Savings Goals page.";
+            "A common starting target is three to six months of essential expenses, but any amount is a meaningful start. You can track progress toward one on the Savings Goals page.";
 
         public const string Fallback =
             "I can explain your budget, point out categories that are over their planned amount, help you think through a savings goal, answer a specific affordability question (try \"Can I afford $50?\"), " +

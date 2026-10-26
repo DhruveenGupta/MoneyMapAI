@@ -3,11 +3,7 @@ using MoneyMap.Domain;
 
 namespace MoneyMap.Persistence;
 
-/// <summary>
-/// Converts between the persisted DTO shape and the domain/application model. Every load routes
-/// back through the Domain layer's validating factory methods, so a hand-edited or corrupted JSON
-/// file is rejected with a clear exception rather than silently accepted.
-/// </summary>
+// Converts between the DTO shape and the real domain model.
 public static class BudgetProfileMapper
 {
     public static BudgetProfileDto ToDto(BudgetProfile profile)
@@ -57,10 +53,7 @@ public static class BudgetProfileMapper
         };
     }
 
-    /// <summary>
-    /// Rebuilds the domain model from a DTO, re-running every Domain-layer validation rule.
-    /// Throws if the stored data would violate an invariant (negative amount, blank name, etc.).
-    /// </summary>
+    // Re-runs Domain validation on the way back in - throws on a negative amount, blank name, etc.
     public static BudgetProfile ToDomain(BudgetProfileDto dto)
     {
         ArgumentNullException.ThrowIfNull(dto);

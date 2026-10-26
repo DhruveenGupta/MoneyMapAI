@@ -1,0 +1,158 @@
+@page "/invest"
+@rendermode InteractiveServer
+@inject BudgetProfileService ProfileService
+
+<PageTitle>MoneyMap AI - Investment Simulator</PageTitle>
+
+<h1>Investment Simulator</h1>
+<div class="mm-banner mm-banner-info" role="note">
+    <span aria-hidden="true">ℹ</span>
+    <div>This is an educational, <strong>hypothetical</strong> projection based on assumptions you choose. It is not a prediction, a guarantee, or financial advice, and MoneyMap never executes trades or moves money.</div>
+</div>
+
+<div class="mm-grid mm-grid-2" style="align-items:start;">
+    <section class="mm-card">
+        <h2>Assumptions</h2>
+        <div class="mm-field">
+            <label for="inv-initial">Initial investment</label>
+            <input id="inv-initial" type="number" min="0" step="0.01" class="mm-input" @bind="_initial" @bind:event="oninput" @bind:after="Recalculate" />
+        </div>
+        <div class="mm-field">
+            <label for="inv-monthly">Monthly contribution</label>
+            <input id="inv-monthly" type="number" min="0" step="0.01" class="mm-input" @bind="_monthly" @bind:event="oninput" @bind:after="Recalculate" />
+        </div>
+        <div class="mm-field">
+            <label for="inv-years">Time horizon (years)</label>
+            <input id="inv-years" type="number" min="1" max="100" step="1" class="mm-input" @bind="_years" @bind:event="oninput" @bind:after="Recalculate" />
+        </div>
+        <div class="mm-field">
+            <label for="inv-return">Assumed annual return (%)</label>
+            <input id="inv-return" type="number" step="0.1" class="mm-input" @bind="_returnA" @bind:event="oninput" @bind:after="Recalculate" />
+        </div>
+        <div class="mm-field">
+            <label for="inv-fee">Annual fees (%, optional)</label>
+            <input id="inv-fee" type="number" min="0" step="0.01" class="mm-input" @bind="_fee" @bind:event="oninput" @bind:after="Recalculate" />
+        </div>
+        <div class="mm-field">
+            <label for="inv-inflation">Assumed annual inflation (%, optional)</label>
+            <input id="inv-inflation" type="number" step="0.1" class="mm-input" @bind="_inflation" @bind:event="oninput" @bind:after="Recalculate" />
+        </div>
+        <div class="mm-checkbox-row">
+            <input id="inv-compare" type="checkbox" @bind="_compare" @bind:after="Recalculate" />
+            <label for="inv-compare">Compare with a second return assumption</label>
+        </div>
+        @if (_compare)
+        {
+            <div class="mm-field">
+                <label for="inv-return-b">Second scenario annual return (%)</label>
+                <input id="inv-return-b" type="number" step="0.1" class="mm-input" @bind="_returnB" @bind:event="oninput" @bind:after="Recalculate" />
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <p class="mm-error-text" role="alert">@_error</p>
+        }
+    </section>
+
+    <section class="mm-card">
+        <h2>Hypothetical results</h2>
+        @if (_projectionA is not null)
+        {
+            <h3>Scenario A - @_returnA%/year</h3>
+            <div class="mm-grid mm-grid-2">
+                <StatCard Label="Total contributions" Value="@_projectionA.TotalContributions.ToString()" />
+                <StatCard Label="Projected ending balance" Value="@_projectionA.ProjectedEndingBalance.ToString()" Tone="StatTone.Positive" />
+                <StatCard Label="Hypothetical growth" Value="@_projectionA.HypotheticalGrowth.ToString()" />
+                @if (_projectionA.InflationAdjustedEndingBalance is { } infA)
+                {
+                    <StatCard Label="Ending balance in today's dollars" Value="@infA.ToString()" SubText="Adjusted for assumed inflation" />
+                }
+            </div>
+
+            @if (_compare && _projectionB is not null)
+            {
+                <h3 style="margin-top:16px;">Scenario B - @_returnB%/year</h3>
+                <div class="mm-grid mm-grid-2">
+                    <StatCard Label="Total contributions" Value="@_projectionB.TotalContributions.ToString()" />
+                    <StatCard Label="Projected ending balance" Value="@_projectionB.ProjectedEndingBalance.ToString()" Tone="StatTone.Positive" />
+                </div>
+                <p class="mm-text-sm" style="margin-top:8px;">
+                    The difference between scenarios is @DifferenceBetweenScenarios(), purely because of the different assumed return. It's not a forecast of which one is more likely.
+                </p>
+            }
+
+            <h3 style="margin-top:16px;">Balance over time</h3>
+            <BarChart PrimaryColumnHeader="Year" ValueColumnHeader="Balance" SecondaryColumnHeader="Contributions to date"
+                      Data="@_projectionA.YearlySeries.Where(y => y.Year > 0).Select(y => new ChartDatum($"Year {y.Year}", y.NominalBalance.Amount, Currency, y.ContributionsToDate.Amount)).ToList()" />
+        }
+    </section>
+</div>
+
+@code {
+    private decimal _initial = 500m;
+    private decimal _monthly = 100m;
+    private int _years = 10;
+    private decimal _returnA = 7m;
+    private decimal _returnB = 4m;
+    private decimal? _fee;
+    private decimal? _inflation;
+    private bool _compare;
+    private string? _error;
+    private string Currency = "USD";
+
+    private InvestmentProjection? _projectionA;
+    private InvestmentProjection? _projectionB;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var profile = await ProfileService.GetProfileAsync();
+        Currency = profile.Budget.Currency;
+        Recalculate();
+    }
+
+    private void Recalculate()
+    {
+        _error = null;
+        try
+        {
+            _projectionA = InvestmentSimulator.Simulate(new InvestmentAssumptions
+            {
+                InitialInvestment = new Money(_initial, Currency),
+                MonthlyContribution = new Money(_monthly, Currency),
+                YearsHorizon = _years,
+                AnnualReturnPercent = _returnA,
+                AnnualFeePercent = _fee,
+                AnnualInflationPercent = _inflation,
+            });
+
+            _projectionB = _compare
+                ? InvestmentSimulator.Simulate(new InvestmentAssumptions
+                {
+                    InitialInvestment = new Money(_initial, Currency),
+                    MonthlyContribution = new Money(_monthly, Currency),
+                    YearsHorizon = _years,
+                    AnnualReturnPercent = _returnB,
+                    AnnualFeePercent = _fee,
+                    AnnualInflationPercent = _inflation,
+                })
+                : null;
+        }
+        catch (ArgumentOutOfRangeException ex)
+        {
+            _error = ex.Message;
+            _projectionA = null;
+            _projectionB = null;
+        }
+    }
+
+    private string DifferenceBetweenScenarios()
+    {
+        if (_projectionA is null || _projectionB is null)
+        {
+            return string.Empty;
+        }
+
+        var diff = _projectionA.ProjectedEndingBalance.Amount - _projectionB.ProjectedEndingBalance.Amount;
+        return new Money(Math.Abs(diff), Currency).ToString() + (diff >= 0 ? " more under Scenario A" : " more under Scenario B");
+    }
+}

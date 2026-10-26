@@ -1,0 +1,53 @@
+@inject IJSRuntime JS
+
+<div style="display:flex; align-items:center; gap:14px;" role="group" aria-label="Display preferences">
+    <div style="display:flex; align-items:center; gap:4px;">
+        <span class="mm-visually-hidden" id="mm-theme-label">Theme</span>
+        <button type="button" class="mm-chip mm-btn-sm" aria-pressed="@(_theme == "light")" aria-labelledby="mm-theme-label" @onclick='() => SetTheme("light")'>☀ Light</button>
+        <button type="button" class="mm-chip mm-btn-sm" aria-pressed="@(_theme == "dark")" aria-labelledby="mm-theme-label" @onclick='() => SetTheme("dark")'>🌙 Dark</button>
+        <button type="button" class="mm-chip mm-btn-sm" aria-pressed="@(_theme == "system")" aria-labelledby="mm-theme-label" @onclick='() => SetTheme("system")'>🖥 System</button>
+    </div>
+    <div style="display:flex; align-items:center; gap:4px;">
+        <span class="mm-visually-hidden" id="mm-text-label">Text size</span>
+        <button type="button" class="mm-chip mm-btn-sm" aria-pressed="@(_scale == "1")" aria-labelledby="mm-text-label" @onclick='() => SetScale("1")'>A</button>
+        <button type="button" class="mm-chip mm-btn-sm" aria-pressed="@(_scale == "1.15")" aria-labelledby="mm-text-label" @onclick='() => SetScale("1.15")'>A+</button>
+        <button type="button" class="mm-chip mm-btn-sm" aria-pressed="@(_scale == "1.3")" aria-labelledby="mm-text-label" @onclick='() => SetScale("1.3")'>A++</button>
+    </div>
+</div>
+
+@code {
+    private string _theme = "system";
+    private string _scale = "1";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        try
+        {
+            _theme = await JS.InvokeAsync<string>("moneyMapPreferences.getTheme");
+            _scale = await JS.InvokeAsync<string>("moneyMapPreferences.getTextScale");
+            StateHasChanged();
+        }
+        catch (JSException)
+        {
+            // Happens on the prerendered pass, before the SignalR circuit is up - the
+            // interactive pass right after this one will succeed.
+        }
+    }
+
+    private async Task SetTheme(string theme)
+    {
+        _theme = theme;
+        await JS.InvokeVoidAsync("moneyMapPreferences.setTheme", theme);
+    }
+
+    private async Task SetScale(string scale)
+    {
+        _scale = scale;
+        await JS.InvokeVoidAsync("moneyMapPreferences.setTextScale", scale);
+    }
+}

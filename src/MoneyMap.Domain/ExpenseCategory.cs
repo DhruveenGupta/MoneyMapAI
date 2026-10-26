@@ -1,10 +1,6 @@
 namespace MoneyMap.Domain;
 
-/// <summary>
-/// Fixed set of budget categories. Kept deliberately small and generic (rather than a full
-/// chart-of-accounts) so a first-time budgeter is not overwhelmed, while still covering the
-/// common expense types called out in the product spec.
-/// </summary>
+// Kept short on purpose - a first-time budgeter doesn't need a full chart of accounts.
 public enum ExpenseCategory
 {
     Housing,
@@ -21,10 +17,7 @@ public enum ExpenseCategory
 
 public static class ExpenseCategoryInfo
 {
-    /// <summary>
-    /// Whether a category is generally a "need" (vs. "want"). Used only for beginner-friendly
-    /// education copy; it never gates or judges what a user enters.
-    /// </summary>
+    // Rough need-vs-want split, only used for the beginner education copy.
     public static bool IsTypicallyNeed(ExpenseCategory category) => category switch
     {
         ExpenseCategory.Housing => true,

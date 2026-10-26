@@ -1,6 +1,6 @@
 namespace MoneyMap.Application;
 
-/// <summary>Abstracts "now" so application services stay deterministic and testable.</summary>
+// Lets tests fake "now" instead of depending on the real clock.
 public interface IClock
 {
     DateTimeOffset UtcNow { get; }

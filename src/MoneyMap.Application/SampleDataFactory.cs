@@ -2,11 +2,7 @@ using MoneyMap.Domain;
 
 namespace MoneyMap.Application;
 
-/// <summary>
-/// Produces a realistic, clearly-labeled sample budget so a new user (or a demo) can explore the
-/// app before entering real numbers. Sample data is always flagged via
-/// <see cref="BudgetProfile.IsSampleData"/> and is never mixed silently with real user entries.
-/// </summary>
+// Builds the sample budget shown when someone clicks "start with sample data" on the home page.
 public static class SampleDataFactory
 {
     public const string SampleCurrency = "USD";

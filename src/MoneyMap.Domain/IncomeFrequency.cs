@@ -1,6 +1,5 @@
 namespace MoneyMap.Domain;
 
-/// <summary>How often an income source is paid.</summary>
 public enum IncomeFrequency
 {
     Weekly,
@@ -10,11 +9,8 @@ public enum IncomeFrequency
     Annually,
 }
 
-/// <summary>
-/// Documented, deterministic rules for normalizing income of any frequency into a common monthly
-/// or annual basis. These rules use the standard 52-week / 26-biweekly-period calendar year
-/// convention, not a flat "weeks * 4" approximation, so monthly figures reconcile with annual ones.
-/// </summary>
+// Converts between pay frequencies. Uses the real 52-week / 26-biweekly-period year, not a
+// "weeks * 4" shortcut, so monthly and annual figures actually line up.
 public static class IncomeFrequencyConverter
 {
     private const decimal WeeksPerYear = 52m;
@@ -22,7 +18,6 @@ public static class IncomeFrequencyConverter
     private const decimal SemiMonthlyPeriodsPerYear = 24m;
     private const decimal MonthsPerYear = 12m;
 
-    /// <summary>Converts a single payment amount at the given frequency into its monthly equivalent.</summary>
     public static Money ToMonthly(Money amount, IncomeFrequency frequency) => frequency switch
     {
         IncomeFrequency.Weekly => amount * WeeksPerYear / MonthsPerYear,
@@ -33,7 +28,6 @@ public static class IncomeFrequencyConverter
         _ => throw new ArgumentOutOfRangeException(nameof(frequency), frequency, "Unsupported income frequency."),
     };
 
-    /// <summary>Converts a single payment amount at the given frequency into its annual equivalent.</summary>
     public static Money ToAnnual(Money amount, IncomeFrequency frequency) => frequency switch
     {
         IncomeFrequency.Weekly => amount * WeeksPerYear,

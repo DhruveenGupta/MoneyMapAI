@@ -8,18 +8,14 @@ public sealed record CategoryBreakdown
 
     public Money? ActualTotal { get; init; }
 
-    /// <summary>Share of total monthly net income this category's planned amount represents, or null if income is zero.</summary>
+    // Share of income this category's planned amount is, null if income is zero.
     public decimal? PercentOfIncome { get; init; }
 
-    /// <summary>Share of total planned expenses this category represents, or null if there are no planned expenses.</summary>
+    // Share of total planned expenses, null if there are no planned expenses.
     public decimal? PercentOfPlannedExpenses { get; init; }
 }
 
-/// <summary>
-/// The full set of reconciled, derived figures for a budget at a point in time. Every number here
-/// is computed directly from <see cref="Budget"/> with no external input, so a dashboard, a chart,
-/// and an AI explanation that all read from the same <see cref="BudgetSummary"/> can never disagree.
-/// </summary>
+// All the derived numbers for a budget at a point in time, computed straight from Budget.
 public sealed record BudgetSummary
 {
     public required string Currency { get; init; }
@@ -28,15 +24,15 @@ public sealed record BudgetSummary
 
     public required Money TotalPlannedExpenses { get; init; }
 
-    /// <summary>Sum of recorded actuals. Null (not zero) when no expense line has an actual recorded yet.</summary>
+    // Sum of recorded actuals. Null, not zero, when nothing's been recorded yet.
     public Money? TotalActualExpenses { get; init; }
 
     public required Money PlannedRemainingFunds { get; init; }
 
-    /// <summary>Income minus (actual-if-recorded, else planned) for every line — the best current estimate of funds left.</summary>
+    // Income minus actual-if-recorded-else-planned for every line.
     public required Money BlendedRemainingFunds { get; init; }
 
-    /// <summary>Planned expenses as a percent of income, or null if income is zero.</summary>
+    // Planned expenses as a percent of income, null if income is zero.
     public decimal? BudgetUtilizationPercent { get; init; }
 
     public required IReadOnlyList<CategoryBreakdown> CategoryBreakdown { get; init; }

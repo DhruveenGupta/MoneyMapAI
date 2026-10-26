@@ -2,10 +2,8 @@ using MoneyMap.Domain;
 
 namespace MoneyMap.Application;
 
-/// <summary>
-/// The full persisted state for one user: their budget, their savings goals, and bookkeeping
-/// metadata. This is the aggregate the repository loads and saves as a single unit.
-/// </summary>
+// Everything persisted for one user - budget, goals, and bookkeeping. The repository loads and
+// saves this as a single unit.
 public sealed record BudgetProfile
 {
     public required Guid Id { get; init; }
@@ -14,7 +12,6 @@ public sealed record BudgetProfile
 
     public IReadOnlyList<SavingsGoal> SavingsGoals { get; init; } = Array.Empty<SavingsGoal>();
 
-    /// <summary>True when this profile was created from built-in sample data rather than user entry.</summary>
     public bool IsSampleData { get; init; }
 
     public required DateTimeOffset CreatedAtUtc { get; init; }

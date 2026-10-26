@@ -1,7 +1,84 @@
-﻿@page "/"
+@page "/"
+@rendermode InteractiveServer
+@inject BudgetProfileService ProfileService
+@inject NavigationManager Nav
 
-<PageTitle>Home</PageTitle>
+<PageTitle>MoneyMap AI - Home</PageTitle>
 
-<h1>Hello, world!</h1>
+@if (_loading)
+{
+    <p>Loading…</p>
+}
+else if (_hasRealData)
+{
+    <h1>Welcome back</h1>
+    <p>Your budget has @(_profile!.Budget.IncomeSources.Count) income source(s) and @(_profile.Budget.Expenses.Count) expense line(s) saved.</p>
+    <div class="mm-grid mm-grid-3">
+        <a class="mm-card" style="text-decoration:none;" href="/dashboard">
+            <h3>📊 Dashboard</h3>
+            <p class="mm-text-sm" style="color:var(--mm-text-muted);">See income, spending, and remaining funds at a glance.</p>
+        </a>
+        <a class="mm-card" style="text-decoration:none;" href="/budget">
+            <h3>🧮 Budget Builder</h3>
+            <p class="mm-text-sm" style="color:var(--mm-text-muted);">Adjust category spending and see the impact instantly.</p>
+        </a>
+        <a class="mm-card" style="text-decoration:none;" href="/assistant">
+            <h3>💬 Ask the Assistant</h3>
+            <p class="mm-text-sm" style="color:var(--mm-text-muted);">Get plain-language answers about your own budget.</p>
+        </a>
+    </div>
+}
+else
+{
+    <h1>Understand your money, visually.</h1>
+    <p style="max-width:62ch;">
+        MoneyMap AI helps you answer five questions: how much comes in, where it goes, what you can afford,
+        how to reach your savings goals, and how to learn about investing. All from numbers you type in yourself,
+        no bank login required.
+    </p>
 
-Welcome to your new app.
+    <div class="mm-grid mm-grid-2" style="margin-top:24px; max-width:720px;">
+        <div class="mm-card">
+            <h3>Start with sample data</h3>
+            <p class="mm-text-sm">Explore a realistic example budget for a part-time worker, pre-filled so you can see every feature immediately.</p>
+            <button class="mm-btn mm-btn-primary mm-btn-block" @onclick="StartWithSample" disabled="@_starting">Start with sample data</button>
+        </div>
+        <div class="mm-card">
+            <h3>Start from scratch</h3>
+            <p class="mm-text-sm">Enter your own income and expenses from the very beginning. Every field is optional and editable later.</p>
+            <button class="mm-btn mm-btn-secondary mm-btn-block" @onclick="StartBlank" disabled="@_starting">Start blank</button>
+        </div>
+    </div>
+
+    <p class="mm-text-sm" style="color:var(--mm-text-muted); margin-top:24px; max-width:62ch;">
+        MoneyMap AI is an educational tool built for the Congressional App Challenge. It does not provide
+        personalized financial, tax, or investment advice, and it never executes trades or moves money.
+    </p>
+}
+
+@code {
+    private BudgetProfile? _profile;
+    private bool _loading = true;
+    private bool _starting;
+    private bool _hasRealData;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _profile = await ProfileService.GetProfileAsync();
+        _hasRealData = !_profile.IsSampleData && (_profile.Budget.IncomeSources.Count > 0 || _profile.Budget.Expenses.Count > 0);
+        _loading = false;
+    }
+
+    private async Task StartWithSample()
+    {
+        _starting = true;
+        await ProfileService.LoadSampleDataAsync();
+        Nav.NavigateTo("/dashboard");
+    }
+
+    private Task StartBlank()
+    {
+        Nav.NavigateTo("/onboarding");
+        return Task.CompletedTask;
+    }
+}

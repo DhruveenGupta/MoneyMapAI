@@ -10,12 +10,12 @@ public enum ChatRole
 
 public sealed record ChatTurn(ChatRole Role, string Content);
 
-/// <summary>A category-level spending change the assistant suggests. Never applied automatically.</summary>
+// A spending change the assistant suggests. Never applied without the user clicking confirm.
 public sealed record ProposedBudgetChange
 {
     public required ExpenseCategory Category { get; init; }
 
-    /// <summary>Change to the category's planned monthly amount; negative reduces spending.</summary>
+    // Negative reduces spending, positive increases it.
     public required decimal DeltaAmount { get; init; }
 
     public required string Rationale { get; init; }
@@ -36,25 +36,22 @@ public sealed record AiAssistantReply
 
     public required string ProviderName { get; init; }
 
-    /// <summary>True when a configured remote provider failed and a safe fallback answered instead.</summary>
+    // True when a configured remote provider failed and the fallback answered instead.
     public bool IsFallback { get; init; }
 
-    /// <summary>Shown to the user when the assistant could not do something (e.g. no live market data).</summary>
+    // Shown when the assistant can't do something, e.g. no live market data.
     public string? LimitationNotice { get; init; }
 
     public IReadOnlyList<ProposedBudgetChange> ProposedChanges { get; init; } = Array.Empty<ProposedBudgetChange>();
 }
 
-/// <summary>
-/// Provider abstraction isolating the application from any single LLM vendor. Implementations
-/// must never perform or claim to perform any authoritative financial calculation themselves —
-/// numbers in a reply must trace back to the <see cref="AiFinancialContext"/> they were given.
-/// </summary>
+// Lets the app swap AI providers without caring which one's behind it. Implementations
+// shouldn't do their own financial math - numbers in a reply should trace back to the
+// AiFinancialContext they were given.
 public interface IAiAssistant
 {
     string ProviderName { get; }
 
-    /// <summary>Whether this provider requires network access / external credentials to function.</summary>
     bool RequiresNetwork { get; }
 
     Task<AiAssistantReply> AskAsync(AiAssistantRequest request, CancellationToken cancellationToken = default);
